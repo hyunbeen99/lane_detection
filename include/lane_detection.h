@@ -33,4 +33,5 @@ class LaneDetect {
 
 struct LanePoint {
     float x, y; 
+    int layer;
 };

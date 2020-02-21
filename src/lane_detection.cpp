@@ -73,32 +73,69 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
     geometry_msgs::Point p;
     velodyne_pointcloud::PointXYZIR result_point;
     pcl::PointCloud<velodyne_pointcloud::PointXYZIR>::Ptr result (new pcl::PointCloud<velodyne_pointcloud::PointXYZIR>);
+
+    // unfiltered points
+    LanePoint lp;
+    vector<LanePoint> temp_left_lane;
+    vector<LanePoint> temp_right_lane;
+    
     for (auto point : ds.m_points) {
-        //p.x = point.x;
-        //p.y = point.y;
-        //p.z = point.z;
-        LanePoint lp;
+        lp.x = point.x;
+        lp.y = point.y;
+        lp.layer = point.layer;
 
         if (LEFT_R < point.y && point.y < LEFT_L && point.x > FRONT_OFFSET){
-            lp.x = point.x;
-            lp.y = point.y;            
-            left_lane.push_back(lp);
+            temp_left_lane.push_back(lp);
         }
         else if (RIGHT_R < point.y && point.y < RIGHT_L && point.x > FRONT_OFFSET){
-            lp.x = point.x;
-            lp.y = point.y;
-            right_lane.push_back(lp);
+            temp_right_lane.push_back(lp);
         }
-
-        /*result_point.x = point.x;
-        result_point.y = point.y;
-        result_point.z = point.z;
-        result_point.ring = point.layer;
-        result->points.push_back(result_point);
-        */
-        //marker.points.push_back(p);
     }
     
+    // for sorting
+    vector<vector<LanePoint>> left_layer_list(16);
+    vector<vector<LanePoint>> right_layer_list(16);
+
+    // index == layer
+    for (auto point : temp_left_lane) {
+        left_layer_list.at(point.layer).push_back(point);
+    }
+
+    for (auto point : temp_right_lane) {
+        right_layer_list.at(point.layer).push_back(point);
+    }
+    
+    // calculate mean point and push it into left_lane, right_lane
+    for (auto lpv : left_layer_list) {
+        int sum_x, sum_y = 0;
+
+        for (auto lpoint : lpv) {
+            sum_x += lpoint.x;
+            sum_y += lpoint.y;
+        }
+
+        LanePoint lp;
+
+        lp.x = sum_x / lpv.size();
+        lp.y = sum_y / lpv.size();
+        left_lane.push_back(lp);
+    }
+
+    for (auto lpv : right_layer_list) {
+        int sum_x, sum_y = 0;
+
+        for (auto lpoint : lpv) {
+            sum_x += lpoint.x;
+            sum_y += lpoint.y;
+        }
+
+        LanePoint lp;
+
+        lp.x = sum_x / lpv.size();
+        lp.y = sum_y / lpv.size();
+        right_lane.push_back(lp);
+    }
+
     /*for (auto point : cloud_XYZIR->points) {
         marker.pose.position.x = point.x;
         marker.pose.position.y = point.y;
