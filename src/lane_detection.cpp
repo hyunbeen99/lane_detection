@@ -11,10 +11,10 @@
 
 using namespace std;
 
-float LEFT_L;
-float LEFT_R;
-float RIGHT_L;
-float RIGHT_R;
+float LEFT_L = 2;
+float LEFT_R = 0.5;
+float RIGHT_L = -0.5;
+float RIGHT_R = -2;
 float FRONT_OFFSET = 0.5;
 
 void LaneDetect::initsetup(){
@@ -116,9 +116,13 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
 
         LanePoint lp;
 
-        lp.x = sum_x / lpv.size();
-        lp.y = sum_y / lpv.size();
-        left_lane.push_back(lp);
+        try {
+            lp.x = sum_x / lpv.size();
+            lp.y = sum_y / lpv.size();
+            left_lane.push_back(lp);
+        } catch (...) {
+            cout << lpv.size() << endl;
+        }
     }
 
     for (auto lpv : right_layer_list) {
@@ -131,25 +135,34 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
 
         LanePoint lp;
 
-        lp.x = sum_x / lpv.size();
-        lp.y = sum_y / lpv.size();
-        right_lane.push_back(lp);
+        try {
+            lp.x = sum_x / lpv.size();
+            lp.y = sum_y / lpv.size();
+            right_lane.push_back(lp);
+        } catch (...) {
+            cout << lpv.size() << endl;
+        }
     }
 
-    /*for (auto point : cloud_XYZIR->points) {
-        marker.pose.position.x = point.x;
-        marker.pose.position.y = point.y;
-        marker.pose.position.z = point.z;
-    }*/
+    for (auto point : left_lane) {
+        p.x = point.x;
+        p.y = point.y;
+        p.z = 0.1;
+        marker.points.push_back(p);
+    }
 
-    //points.points.push_back(p);
+    for (auto point : right_lane) {
+        p.x = point.x;
+        p.y = point.y;
+        p.z = 0.1;
+        marker.points.push_back(p);
+    }
     //line_list.points.push_back(p);
     //line_strip.points.push_back(p);
 
-    (*result).header.frame_id = marker.header.frame_id = "velodyne";
+    marker.header.frame_id = "velodyne";
     marker.header.stamp = ros::Time::now();	
-    pub_.publish(result);
-    //marker_pub.publish(marker);
+    marker_pub.publish(marker);
     
 }
 
