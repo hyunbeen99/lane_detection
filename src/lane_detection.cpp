@@ -11,6 +11,11 @@
 
 using namespace std;
 
+int LEFT_L;
+int LEFT_R;
+int RIGHT_L;
+int RIGHT_R;
+
 void LaneDetect::initsetup(){
     sub_ = nh_.subscribe("/velodyne_points", 1, &LaneDetect::pointcloudCallback, this);
 	marker_pub = nh_.advertise<visualization_msgs::Marker>("visualization_marker", 10);
@@ -31,7 +36,7 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
         velodyne_pointcloud::PointXYZIR pt_point = cloud_XYZIR->points[j];
 
         if (MIN_INTEN <= pt_point.intensity && pt_point.intensity <= MAX_INTEN) {
-            Point db_point(pt_point.x, pt_point.y, pt_point.z, pt_point.intensity); // class 'Point' in dbscan.h
+            Point db_point(pt_point.x, pt_point.y, pt_point.z, pt_point.intensity, pt_point.ring); // class 'Point' in dbscan.h
             db_points.push_back(db_point);
         }
     }
@@ -76,6 +81,11 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
     //db_msg.header.stamp = ros::Time::now();
 	//pub_.publish(db_msg);
 //----------------------------------------------------------------------------------------//
+    //   +
+    //   x     + y -
+    //   -
+
+
     geometry_msgs::Point p;
     velodyne_pointcloud::PointXYZIR result_point;
     pcl::PointCloud<velodyne_pointcloud::PointXYZIR>::Ptr result (new pcl::PointCloud<velodyne_pointcloud::PointXYZIR>);
@@ -83,14 +93,14 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
         //p.x = point.x;
         //p.y = point.y;
         //p.z = point.z;
-        
         result_point.x = point.x;
         result_point.y = point.y;
         result_point.z = point.z;
+        result_point.ring = point.layer;
         result->points.push_back(result_point);
         //marker.points.push_back(p);
     }
-
+    
     /*for (auto point : cloud_XYZIR->points) {
         marker.pose.position.x = point.x;
         marker.pose.position.y = point.y;
@@ -104,7 +114,7 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
     (*result).header.frame_id = marker.header.frame_id = "velodyne";
     marker.header.stamp = ros::Time::now();	
     pub_.publish(result);
-    //marker_pub.p)ublish(marker);
+    //marker_pub.publish(marker);
     
 }
 

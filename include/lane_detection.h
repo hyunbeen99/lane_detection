@@ -29,4 +29,8 @@ class LaneDetect {
         ros::NodeHandle nh_;
         void pointcloudCallback(const sensor_msgs::PointCloud2ConstPtr & input);
         void initsetup();
-}; 
+};
+
+struct LanePoint {
+    float x, y; 
+};
