@@ -11,10 +11,11 @@
 
 using namespace std;
 
-int LEFT_L;
-int LEFT_R;
-int RIGHT_L;
-int RIGHT_R;
+float LEFT_L;
+float LEFT_R;
+float RIGHT_L;
+float RIGHT_R;
+float FRONT_OFFSET = 0.5;
 
 void LaneDetect::initsetup(){
     sub_ = nh_.subscribe("/velodyne_points", 1, &LaneDetect::pointcloudCallback, this);
@@ -61,31 +62,14 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
     marker.color.g = 1.0;
     marker.color.b = 0.0;
 
-//-----------------------------------------------------------------------------------------//
-//이전에 하던거..........
 
-    //lane_detection::DbMsg db_msg;  
-    //lane_detection::DbPoint db_p;
-
-   /* for (auto point : ds.m_points)  {
-		db_p.x = point.x;
-		db_p.y = point.y;
-		db_p.z = point.z;
-        db_p.l = 0;
-		// TODO: Get Layer
-	}
-    //cout << db_p << endl;
-    db_msg.points.push_back(db_p);
-*/
-    //db_msg.header.frame_id = "/velodyne";
-    //db_msg.header.stamp = ros::Time::now();
-	//pub_.publish(db_msg);
-//----------------------------------------------------------------------------------------//
     //   +
     //   x     + y -
     //   -
 
-
+    vector<LanePoint> left_lane; 
+    vector<LanePoint> right_lane; 
+    
     geometry_msgs::Point p;
     velodyne_pointcloud::PointXYZIR result_point;
     pcl::PointCloud<velodyne_pointcloud::PointXYZIR>::Ptr result (new pcl::PointCloud<velodyne_pointcloud::PointXYZIR>);
@@ -93,11 +77,25 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
         //p.x = point.x;
         //p.y = point.y;
         //p.z = point.z;
-        result_point.x = point.x;
+        LanePoint lp;
+
+        if (LEFT_R < point.y && point.y < LEFT_L && point.x > FRONT_OFFSET){
+            lp.x = point.x;
+            lp.y = point.y;            
+            left_lane.push_back(lp);
+        }
+        else if (RIGHT_R < point.y && point.y < RIGHT_L && point.x > FRONT_OFFSET){
+            lp.x = point.x;
+            lp.y = point.y;
+            right_lane.push_back(lp);
+        }
+
+        /*result_point.x = point.x;
         result_point.y = point.y;
         result_point.z = point.z;
         result_point.ring = point.layer;
         result->points.push_back(result_point);
+        */
         //marker.points.push_back(p);
     }
     
