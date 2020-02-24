@@ -11,15 +11,18 @@
 
 using namespace std;
 
-float LEFT_L = 2;
-float LEFT_R = 0.5;
+float LEFT_L = 3.5;
+float LEFT_R = 0.8;
 float RIGHT_L = -0.5;
 float RIGHT_R = -2;
 float FRONT_MIN_OFFSET = 0.3;
 float FRONT_MAX_OFFSET = 7.0;
 
-vector<float> left_poly(3);
-vector<float> right_poly(3);
+vector<float> left_poly(4);
+vector<float> right_poly(4);
+
+vector<float> pre_left_poly(4);
+vector<float> pre_right_poly(4);
 
 void LaneDetect::initsetup(){
     sub_ = nh_.subscribe("/velodyne_points", 1, &LaneDetect::pointcloudCallback, this);
@@ -56,12 +59,12 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
 
     marker.pose.orientation.w = 1.0;
 
-    marker.scale.x = 1;
+    marker.scale.x = 0.1;
     marker.scale.y = 0.1;
     //marker.scale.z = 0.1;
 
-    marker.color.a = 1.0f;
-    marker.color.r = 0.0;
+    marker.color.a = 1.0;
+    marker.color.r = 1.0f;
     
 
 
@@ -130,16 +133,17 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
             lp.x = -1000.0;
             lp.y = -1000.0;
             left_lane.push_back(lp);
+            invalidated++;
         }
 
     }
 
-/*    if (invalidated <= 12) { // layers detected 4 or more
+    if (invalidated <= 12) { // layers detected 4 or more
 
-    } else { // less than 4
+    } else { // less than 4 -> use previous poly
 
     }
-*/
+
 
     for (auto lpv : right_layer_list) {
         LanePoint lp;
