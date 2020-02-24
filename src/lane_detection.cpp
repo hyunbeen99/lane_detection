@@ -15,7 +15,11 @@ float LEFT_L = 2;
 float LEFT_R = 0.5;
 float RIGHT_L = -0.5;
 float RIGHT_R = -2;
-float FRONT_OFFSET = 0.5;
+float FRONT_MIN_OFFSET = 0.3;
+float FRONT_MAX_OFFSET = 7.0;
+
+vector<float> left_poly(3);
+vector<float> right_poly(3);
 
 void LaneDetect::initsetup(){
     sub_ = nh_.subscribe("/velodyne_points", 1, &LaneDetect::pointcloudCallback, this);
@@ -35,7 +39,6 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
 
     for (std::size_t j = 0; j < cloud_XYZIR->points.size(); ++j){
         velodyne_pointcloud::PointXYZIR pt_point = cloud_XYZIR->points[j];
-
         if (MIN_INTEN <= pt_point.intensity && pt_point.intensity <= MAX_INTEN) {
             Point db_point(pt_point.x, pt_point.y, pt_point.z, pt_point.intensity, pt_point.ring); // class 'Point' in dbscan.h
             db_points.push_back(db_point);
@@ -57,10 +60,9 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
     marker.scale.y = 0.1;
     //marker.scale.z = 0.1;
 
-    marker.color.a = 1.0;
+    marker.color.a = 1.0f;
     marker.color.r = 0.0;
-    marker.color.g = 1.0;
-    marker.color.b = 0.0;
+    
 
 
     //   +
@@ -73,20 +75,22 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
     geometry_msgs::Point p;
     velodyne_pointcloud::PointXYZIR result_point;
     pcl::PointCloud<velodyne_pointcloud::PointXYZIR>::Ptr result (new pcl::PointCloud<velodyne_pointcloud::PointXYZIR>);
+
     // unfiltered points
-    LanePoint lp;
     vector<LanePoint> temp_left_lane;
     vector<LanePoint> temp_right_lane;
+
+    LanePoint lp;
     
     for (auto point : ds.m_points) {
         lp.x = point.x;
         lp.y = point.y;
         lp.layer = point.layer;
 
-        if (LEFT_R < point.y && point.y < LEFT_L && point.x > FRONT_OFFSET){
+        if (LEFT_R < point.y && point.y < LEFT_L && FRONT_MIN_OFFSET < point.x && point.x < FRONT_MAX_OFFSET){
             temp_left_lane.push_back(lp);
         }
-        else if (RIGHT_R < point.y && point.y < RIGHT_L && point.x > FRONT_OFFSET){
+        else if (RIGHT_R < point.y && point.y < RIGHT_L && FRONT_MIN_OFFSET < point.x && point.x < FRONT_MAX_OFFSET){
             temp_right_lane.push_back(lp);
         }
     }
@@ -97,58 +101,68 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
 
     // index == layer
     for (auto point : temp_left_lane) {
-        left_layer_list.at(point.layer).push_back(point);
+        left_layer_list[point.layer].push_back(point);
     }
 
     for (auto point : temp_right_lane) {
         right_layer_list.at(point.layer).push_back(point);
     }
     
+    int invalidated = 0;
+
     // calculate mean point and push it into left_lane, right_lane
     for (auto lpv : left_layer_list) {
-        float sum_x, sum_y = 0;
-
-        for (auto lpoint : lpv) {
-            sum_x += lpoint.x;
-            sum_y += lpoint.y;
-        }
-
         LanePoint lp;
-        try {
-            if( lpv.size() == 0) throw 0;
-            cout << lpv.size() << endl;
+
+        if (lpv.size() != 0) {
+            float sum_x = 0.0;
+            float sum_y = 0.0;
+
+            for (auto lpoint : lpv) {
+                sum_x += lpoint.x;
+                sum_y += lpoint.y;
+            }
+
             lp.x = sum_x / lpv.size();
             lp.y = sum_y / lpv.size();
             left_lane.push_back(lp);
-        } catch (...) {
+        } else {
             lp.x = -1000.0;
             lp.y = -1000.0;
             left_lane.push_back(lp);
         }
+
     }
+
+/*    if (invalidated <= 12) { // layers detected 4 or more
+
+    } else { // less than 4
+
+    }
+*/
 
     for (auto lpv : right_layer_list) {
-        float sum_x, sum_y = 0;
-
-        for (auto lpoint : lpv) {
-            sum_x += lpoint.x;
-            sum_y += lpoint.y;
-        }
-
         LanePoint lp;
 
-        try {
-            if( lpv.size() == 0) throw 0;
+        if (lpv.size() != 0) {
+            float sum_x = 0.0;
+            float sum_y = 0.0;
+
+            for (auto lpoint : lpv) {
+                sum_x += lpoint.x;
+                sum_y += lpoint.y;
+            }
+
             lp.x = sum_x / lpv.size();
             lp.y = sum_y / lpv.size();
             right_lane.push_back(lp);
-        } catch (...) {
+        } else {
             lp.x = -1000.0;
             lp.y = -1000.0;
             right_lane.push_back(lp);
         }
-    }
 
+    }
 
     for (auto point : left_lane) {
         p.x = point.x;
