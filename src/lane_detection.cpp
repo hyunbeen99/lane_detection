@@ -1,5 +1,7 @@
 #include "lane_detection.h"
 #include "dbscan.cpp"
+#include "polyfit.h"
+#include "polyfit.c"
 #include <visualization_msgs/Marker.h>
 #include <velodyne_pointcloud/point_types.h>
 
@@ -17,6 +19,10 @@ float RIGHT_L = -0.5;
 float RIGHT_R = -2;
 float FRONT_MIN_OFFSET = 0.3;
 float FRONT_MAX_OFFSET = 7.0;
+
+const unsigned int ORDER = 3;
+//const unsigned int countOfElements = 5;
+const double ACCEPTABLE_ERROR = 0.01;
 
 vector<float> left_poly(4);
 vector<float> right_poly(4);
@@ -135,11 +141,31 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
             left_lane.push_back(lp);
             invalidated++;
         }
-
     }
 
     if (invalidated <= 12) { // layers detected 4 or more
+        int result;
 
+        double xData[left_lane.size()];
+        double yData[left_lane.size()];
+
+        for (int i = 0 ; i < left_lane.size() ; i++) {
+            xData[i] = left_lane.at(i).x;
+            yData[i] = left_lane.at(i).y;
+        }
+
+        double coef[ORDER + 1];
+        result = polyfit(xData, yData, left_lane.size(), ORDER, coef);
+
+        cout << coef[3] << " : " << coef[2] << " : " << coef[1] << " : " << coef[0] << endl;
+
+        /*
+        CHECK_EQUAL(0, result);
+        DOUBLES_EQUAL(0.5, coefficients[3], acceptableError);
+        DOUBLES_EQUAL(2.5, coefficients[2], acceptableError);
+        DOUBLES_EQUAL(1.0, coefficients[1], acceptableError);
+        DOUBLES_EQUAL(3.0, coefficients[0], acceptableError);
+        */
     } else { // less than 4 -> use previous poly
 
     }
