@@ -21,7 +21,6 @@ float FRONT_MIN_OFFSET = 0.3;
 float FRONT_MAX_OFFSET = 7.0;
 
 const unsigned int ORDER = 3;
-//const unsigned int countOfElements = 5;
 const double ACCEPTABLE_ERROR = 0.01;
 
 vector<float> left_poly(4);
@@ -117,7 +116,7 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
         right_layer_list.at(point.layer).push_back(point);
     }
     
-    int invalidated = 0;
+    int left_invalidated = 0;
 
     // calculate mean point and push it into left_lane, right_lane
     for (auto lpv : left_layer_list) {
@@ -139,11 +138,11 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
             lp.x = -1000.0;
             lp.y = -1000.0;
             left_lane.push_back(lp);
-            invalidated++;
+            left_invalidated++;
         }
     }
 
-    if (invalidated <= 12) { // layers detected 4 or more
+    if (left_invalidated <= 12) { // layers detected 4 or more
         int result;
 
         double xData[left_lane.size()];
@@ -157,20 +156,17 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
         double coef[ORDER + 1];
         result = polyfit(xData, yData, left_lane.size(), ORDER, coef);
 
+        cout << endl;
+        cout << "left lane" << endl;
         cout << coef[3] << " : " << coef[2] << " : " << coef[1] << " : " << coef[0] << endl;
+        cout << endl;
 
-        /*
-        CHECK_EQUAL(0, result);
-        DOUBLES_EQUAL(0.5, coefficients[3], acceptableError);
-        DOUBLES_EQUAL(2.5, coefficients[2], acceptableError);
-        DOUBLES_EQUAL(1.0, coefficients[1], acceptableError);
-        DOUBLES_EQUAL(3.0, coefficients[0], acceptableError);
-        */
     } else { // less than 4 -> use previous poly
-
     }
+    
+    int right_invalidated = 0;
 
-
+    // calculate mean point and push it into left_lane, right_lane
     for (auto lpv : right_layer_list) {
         LanePoint lp;
 
@@ -190,9 +186,32 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
             lp.x = -1000.0;
             lp.y = -1000.0;
             right_lane.push_back(lp);
+            right_invalidated++;
+        }
+    }
+
+    if (right_invalidated <= 12) { // layers detected 4 or more
+        int result;
+
+        double xData[right_lane.size()];
+        double yData[right_lane.size()];
+
+        for (int i = 0 ; i < right_lane.size() ; i++) {
+            xData[i] = right_lane.at(i).x;
+            yData[i] = right_lane.at(i).y;
         }
 
+        double coef[ORDER + 1];
+        result = polyfit(xData, yData, right_lane.size(), ORDER, coef);
+
+        cout << endl;
+        cout << "right lane" << endl;
+        cout << coef[3] << " : " << coef[2] << " : " << coef[1] << " : " << coef[0] << endl;
+        cout << endl;
+
+    } else { // less than 4 -> use previous poly
     }
+
 
     for (auto point : left_lane) {
         p.x = point.x;
