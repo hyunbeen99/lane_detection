@@ -20,7 +20,7 @@ float FRONT_OFFSET = 0.5;
 void LaneDetect::initsetup(){
     sub_ = nh_.subscribe("/velodyne_points", 1, &LaneDetect::pointcloudCallback, this);
 	marker_pub = nh_.advertise<visualization_msgs::Marker>("visualization_marker", 10);
-	pub_ = nh_.advertise<sensor_msgs::PointCloud2>("result", 10);
+	//pub_ = nh_.advertise<sensor_msgs::PointCloud2>("result", 10);
     //pub_ = nh_.advertise<lane_detection::DbMsg>("db_msg",10);
 }
 
@@ -73,7 +73,6 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
     geometry_msgs::Point p;
     velodyne_pointcloud::PointXYZIR result_point;
     pcl::PointCloud<velodyne_pointcloud::PointXYZIR>::Ptr result (new pcl::PointCloud<velodyne_pointcloud::PointXYZIR>);
-
     // unfiltered points
     LanePoint lp;
     vector<LanePoint> temp_left_lane;
@@ -107,7 +106,7 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
     
     // calculate mean point and push it into left_lane, right_lane
     for (auto lpv : left_layer_list) {
-        int sum_x, sum_y = 0;
+        float sum_x, sum_y = 0;
 
         for (auto lpoint : lpv) {
             sum_x += lpoint.x;
@@ -115,18 +114,21 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
         }
 
         LanePoint lp;
-
         try {
+            if( lpv.size() == 0) throw 0;
+            cout << lpv.size() << endl;
             lp.x = sum_x / lpv.size();
             lp.y = sum_y / lpv.size();
             left_lane.push_back(lp);
         } catch (...) {
-            cout << lpv.size() << endl;
+            lp.x = -1000.0;
+            lp.y = -1000.0;
+            left_lane.push_back(lp);
         }
     }
 
     for (auto lpv : right_layer_list) {
-        int sum_x, sum_y = 0;
+        float sum_x, sum_y = 0;
 
         for (auto lpoint : lpv) {
             sum_x += lpoint.x;
@@ -136,19 +138,24 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
         LanePoint lp;
 
         try {
+            if( lpv.size() == 0) throw 0;
             lp.x = sum_x / lpv.size();
             lp.y = sum_y / lpv.size();
             right_lane.push_back(lp);
         } catch (...) {
-            cout << lpv.size() << endl;
+            lp.x = -1000.0;
+            lp.y = -1000.0;
+            right_lane.push_back(lp);
         }
     }
+
 
     for (auto point : left_lane) {
         p.x = point.x;
         p.y = point.y;
         p.z = 0.1;
         marker.points.push_back(p);
+        //result->points.push_back(p);
     }
 
     for (auto point : right_lane) {
@@ -156,10 +163,13 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
         p.y = point.y;
         p.z = 0.1;
         marker.points.push_back(p);
+        //result->points.push_back(p);    
     }
     //line_list.points.push_back(p);
     //line_strip.points.push_back(p);
 
+    //result->header.frame_id = "velodyne";
+    //pub_.publish(result);
     marker.header.frame_id = "velodyne";
     marker.header.stamp = ros::Time::now();	
     marker_pub.publish(marker);
