@@ -51,24 +51,13 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
 
     DBSCAN ds(MINIMUM_POINTS, EPSILON, db_points);
     ds.run(); 
-
-    //   +
-    //   x     + y -
-    //   -
-
-    vector<LanePoint> left_lane; 
-    vector<LanePoint> right_lane; 
     
     // unfiltered points
     vector<LanePoint> temp_left_lane;
     vector<LanePoint> temp_right_lane;
 
-    LanePoint lp;
-    
     for (auto point : ds.m_points) {
-        lp.x = point.x;
-        lp.y = point.y;
-        lp.layer = point.layer;
+		LanePoint lp(point.x, point.y, point.layer);
 
         if (LEFT_R < point.y && point.y < LEFT_L && FRONT_MIN_OFFSET < point.x && point.x < FRONT_MAX_OFFSET){
             temp_left_lane.push_back(lp);
@@ -91,6 +80,13 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
         right_layer_list.at(point.layer).push_back(point);
     }
     
+
+    //   +
+    //   x     + y -
+    //   -
+    vector<LanePoint> left_lane; 
+    vector<LanePoint> right_lane; 
+
     int left_invalidated = 0;
 
     // calculate mean point and push it into left_lane, right_lane

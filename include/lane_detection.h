@@ -20,9 +20,18 @@
 
 using namespace std;
 
-struct LanePoint {
-    float x, y; 
-    int layer;
+class LanePoint{
+	public:
+		float x, y;
+		int layer;
+
+		LanePoint() { }
+
+		LanePoint(float x, float y, int layer) {
+			this->x = x;
+			this->y = y;
+			this->layer = layer;
+		}
 };
 
 class LaneDetect {
