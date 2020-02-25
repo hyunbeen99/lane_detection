@@ -23,11 +23,6 @@ float FRONT_MAX_OFFSET = 7.0;
 const unsigned int ORDER = 3;
 const double ACCEPTABLE_ERROR = 0.01;
 
-vector<float> left_poly(4);
-vector<float> right_poly(4);
-vector<float> pre_left_poly(4);
-vector<float> pre_right_poly(4);
-
 void LaneDetect::initsetup(){
     sub_ = nh_.subscribe("/velodyne_points", 1, &LaneDetect::pointcloudCallback, this);
 	marker_pub_ = nh_.advertise<visualization_msgs::Marker>("visualization_marker", 10);
@@ -80,7 +75,6 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
         right_layer_list.at(point.layer).push_back(point);
     }
     
-
     //   +
     //   x     + y -
     //   -

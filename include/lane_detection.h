@@ -38,6 +38,8 @@ class LaneDetect {
     private:
         ros::Subscriber sub_, sub_2;
         ros::Publisher pub_, marker_pub_;
+		vector<float> left_poly_;
+		vector<float> right_poly_;
     public:
         ofstream writeFile;
         ros::NodeHandle nh_;
