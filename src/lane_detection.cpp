@@ -25,23 +25,19 @@ const double ACCEPTABLE_ERROR = 0.01;
 
 vector<float> left_poly(4);
 vector<float> right_poly(4);
-
 vector<float> pre_left_poly(4);
 vector<float> pre_right_poly(4);
 
 void LaneDetect::initsetup(){
     sub_ = nh_.subscribe("/velodyne_points", 1, &LaneDetect::pointcloudCallback, this);
-	marker_pub = nh_.advertise<visualization_msgs::Marker>("visualization_marker", 10);
+	marker_pub_ = nh_.advertise<visualization_msgs::Marker>("visualization_marker", 10);
 	//pub_ = nh_.advertise<sensor_msgs::PointCloud2>("result", 10);
     //pub_ = nh_.advertise<lane_detection::DbMsg>("db_msg",10);
 }
 
-
 void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::PointCloud2>& input){
-    //ROS_INFO("callback");
     pcl::PointCloud<velodyne_pointcloud::PointXYZIR>::Ptr cloud_XYZIR (new pcl::PointCloud<velodyne_pointcloud::PointXYZIR>);
     pcl::fromROSMsg(*input,*cloud_XYZIR);
-    // now use cloud_XYZIR
 
     vector<Point> db_points;
 
@@ -56,23 +52,6 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
     DBSCAN ds(MINIMUM_POINTS, EPSILON, db_points);
     ds.run(); 
 
-    visualization_msgs::Marker marker; //points, line_strip, line_list;
-    marker.ns = "points_and_lines";
-    marker.action = visualization_msgs::Marker::ADD;
-    marker.type = visualization_msgs::Marker::POINTS;  
-    marker.id = 0;
-
-    marker.pose.orientation.w = 1.0;
-
-    marker.scale.x = 0.1;
-    marker.scale.y = 0.1;
-    //marker.scale.z = 0.1;
-
-    marker.color.a = 1.0;
-    marker.color.r = 1.0f;
-    
-
-
     //   +
     //   x     + y -
     //   -
@@ -80,10 +59,6 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
     vector<LanePoint> left_lane; 
     vector<LanePoint> right_lane; 
     
-    geometry_msgs::Point p;
-    velodyne_pointcloud::PointXYZIR result_point;
-    pcl::PointCloud<velodyne_pointcloud::PointXYZIR>::Ptr result (new pcl::PointCloud<velodyne_pointcloud::PointXYZIR>);
-
     // unfiltered points
     vector<LanePoint> temp_left_lane;
     vector<LanePoint> temp_right_lane;
@@ -212,6 +187,28 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
     } else { // less than 4 -> use previous poly
     }
 
+	visualize(left_lane, right_lane);
+}
+
+void LaneDetect::visualize(vector<LanePoint> left_lane, vector<LanePoint> right_lane) {
+    geometry_msgs::Point p;
+    velodyne_pointcloud::PointXYZIR result_point;
+    pcl::PointCloud<velodyne_pointcloud::PointXYZIR>::Ptr result (new pcl::PointCloud<velodyne_pointcloud::PointXYZIR>);
+
+	visualization_msgs::Marker marker; //points, line_strip, line_list;
+    marker.ns = "points_and_lines";
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.type = visualization_msgs::Marker::POINTS;  
+    marker.id = 0;
+
+    marker.pose.orientation.w = 1.0;
+
+    marker.scale.x = 0.1;
+    marker.scale.y = 0.1;
+    //marker.scale.z = 0.1;
+
+    marker.color.a = 1.0;
+    marker.color.r = 1.0f;
 
     for (auto point : left_lane) {
         p.x = point.x;
@@ -228,6 +225,7 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
         marker.points.push_back(p);
         //result->points.push_back(p);    
     }
+
     //line_list.points.push_back(p);
     //line_strip.points.push_back(p);
 
@@ -235,12 +233,10 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
     //pub_.publish(result);
     marker.header.frame_id = "velodyne";
     marker.header.stamp = ros::Time::now();	
-    marker_pub.publish(marker);
-    
+    marker_pub_.publish(marker);
 }
 
 int main(int argc, char **argv) {
-
 	ros::init(argc, argv, "lane_detection_node");
 	LaneDetect lanedetect;
     lanedetect.initsetup();  

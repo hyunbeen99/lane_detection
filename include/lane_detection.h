@@ -20,18 +20,19 @@
 
 using namespace std;
 
+struct LanePoint {
+    float x, y; 
+    int layer;
+};
+
 class LaneDetect {
     private:
         ros::Subscriber sub_, sub_2;
-        ros::Publisher pub_, marker_pub;
+        ros::Publisher pub_, marker_pub_;
     public:
         ofstream writeFile;
         ros::NodeHandle nh_;
         void pointcloudCallback(const sensor_msgs::PointCloud2ConstPtr & input);
         void initsetup();
-};
-
-struct LanePoint {
-    float x, y; 
-    int layer;
+		void visualize(vector<LanePoint> left_lane, vector<LanePoint> right_lane);
 };
