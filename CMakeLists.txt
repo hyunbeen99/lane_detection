@@ -9,13 +9,10 @@ add_compile_options(-std=c++11)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
-  rospy
-  std_msgs
-  geometry_msgs
   message_generation
-  sensor_msgs
   pcl_ros
   pcl_conversions
+
 )
 
 ## System dependencies are found with CMake's conventions
@@ -112,7 +109,7 @@ generate_messages(
 catkin_package(
 	INCLUDE_DIRS include
 #  LIBRARIES lane_detection
-	CATKIN_DEPENDS roscpp rospy std_msgs
+	CATKIN_DEPENDS roscpp std_msgs
 #  DEPENDS system_lib
 )
 
@@ -135,12 +132,12 @@ include_directories(
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-add_dependencies(${lane_detection} ${lane_detection_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+#add_dependencies(${lane_detection} ${lane_detection_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
- add_executable(${PROJECT_NAME}_node src/lane_detection.cpp)
+add_executable(${PROJECT_NAME}_node src/lane_detection.cpp)
  
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the

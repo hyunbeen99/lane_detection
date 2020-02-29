@@ -26,7 +26,7 @@ const double ACCEPTABLE_ERROR = 0.01;
 void LaneDetect::initsetup(){
     sub_ = nh_.subscribe("/velodyne_points", 1, &LaneDetect::pointcloudCallback, this);
 	marker_pub_ = nh_.advertise<visualization_msgs::Marker>("visualization_marker", 10);
-	//pub_ = nh_.advertise<sensor_msgs::PointCloud2>("result", 10);
+	waypoint_pub_ = nh_.advertise<visualization_msgs::Marker>("waypoint", 10);
     //pub_ = nh_.advertise<lane_detection::DbMsg>("db_msg",10);
 }
 
@@ -107,6 +107,8 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
         }
     }
 
+    double left_coef[ORDER + 1];
+
     if (left_invalidated <= 12) { // layers detected 4 or more
         int result;
 
@@ -118,12 +120,11 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
             yData[i] = left_lane.at(i).y;
         }
 
-        double coef[ORDER + 1];
-        result = polyfit(xData, yData, left_lane.size(), ORDER, coef);
+        result = polyfit(xData, yData, left_lane.size(), ORDER, left_coef);
 
         cout << endl;
         cout << "left lane" << endl;
-        cout << coef[3] << " : " << coef[2] << " : " << coef[1] << " : " << coef[0] << endl;
+        cout << left_coef[3] << " : " << left_coef[2] << " : " << left_coef[1] << " : " << left_coef[0] << endl;
         cout << endl;
 
     } else { // less than 4 -> use previous poly
@@ -155,6 +156,8 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
         }
     }
 
+    double right_coef[ORDER + 1];
+
     if (right_invalidated <= 12) { // layers detected 4 or more
         int result;
 
@@ -166,39 +169,56 @@ void LaneDetect::pointcloudCallback(const boost::shared_ptr<const sensor_msgs::P
             yData[i] = right_lane.at(i).y;
         }
 
-        double coef[ORDER + 1];
-        result = polyfit(xData, yData, right_lane.size(), ORDER, coef);
+        result = polyfit(xData, yData, right_lane.size(), ORDER, right_coef);
 
         cout << endl;
         cout << "right lane" << endl;
-        cout << coef[3] << " : " << coef[2] << " : " << coef[1] << " : " << coef[0] << endl;
+        cout << right_coef[3] << " : " << right_coef[2] << " : " << right_coef[1] << " : " << right_coef[0] << endl;
         cout << endl;
 
     } else { // less than 4 -> use previous poly
     }
-
-	visualize(left_lane, right_lane);
+    
+    vector<geometry_msgs::Point> waypoint;
+    float ld = 1.5;
+    
+    for (int i = 0; i < 10; i++){
+        
+        float waypoint_y_l = left_coef[3]*ld*ld*ld + left_coef[2]*ld*ld + left_coef[1] * ld + left_coef[0];
+        float waypoint_y_r = right_coef[3]*ld*ld*ld + right_coef[2]*ld*ld + right_coef[1] * ld + right_coef[0];
+        //cout << waypoint_y_l << "            " << waypoint_y_r << endl;
+        cout << ld << endl;
+        ld += 0.3;
+        geometry_msgs::Point p;
+        p.x = ld;
+        p.y = (waypoint_y_l + waypoint_y_r)/2;
+        p.z = 0;
+        waypoint.push_back(p);
+    } 
+	visualize(left_lane, right_lane, waypoint);
 }
 
-void LaneDetect::visualize(vector<LanePoint> left_lane, vector<LanePoint> right_lane) {
+void LaneDetect::visualize(vector<LanePoint> left_lane, vector<LanePoint> right_lane, vector<geometry_msgs::Point> waypoint) {
     geometry_msgs::Point p;
-    velodyne_pointcloud::PointXYZIR result_point;
-    pcl::PointCloud<velodyne_pointcloud::PointXYZIR>::Ptr result (new pcl::PointCloud<velodyne_pointcloud::PointXYZIR>);
-
-	visualization_msgs::Marker marker; //points, line_strip, line_list;
-    marker.ns = "points_and_lines";
-    marker.action = visualization_msgs::Marker::ADD;
-    marker.type = visualization_msgs::Marker::POINTS;  
-    marker.id = 0;
+    
+	visualization_msgs::Marker marker, waypoint_line; //points, line_strip, line_list;
+    marker.ns = waypoint_line.ns ="points_and_lines";
+    marker.action = waypoint_line.action = visualization_msgs::Marker::ADD;
+    marker.type = visualization_msgs::Marker::POINTS;
+    waypoint_line.type = visualization_msgs::Marker::LINE_STRIP;
+    marker.id = waypoint_line.id = 0;
 
     marker.pose.orientation.w = 1.0;
-
+    waypoint_line.pose.orientation.w = 1.0;
+    
     marker.scale.x = 0.1;
     marker.scale.y = 0.1;
     //marker.scale.z = 0.1;
 
-    marker.color.a = 1.0;
-    marker.color.r = 1.0f;
+    waypoint_line.scale.x = 0.1;
+
+    marker.color.a = waypoint_line.color.a = 1.0;
+    marker.color.r = waypoint_line.color.b = 1.0f;
 
     for (auto point : left_lane) {
         p.x = point.x;
@@ -215,15 +235,20 @@ void LaneDetect::visualize(vector<LanePoint> left_lane, vector<LanePoint> right_
         marker.points.push_back(p);
         //result->points.push_back(p);    
     }
+    
+    for (auto point: waypoint){
+        waypoint_line.points.push_back(point);
+    }
 
     //line_list.points.push_back(p);
     //line_strip.points.push_back(p);
 
     //result->header.frame_id = "velodyne";
     //pub_.publish(result);
-    marker.header.frame_id = "velodyne";
-    marker.header.stamp = ros::Time::now();	
+    marker.header.frame_id = waypoint_line.header.frame_id = "velodyne";
+    marker.header.stamp = waypoint_line.header.stamp = ros::Time::now();	
     marker_pub_.publish(marker);
+    waypoint_pub_.publish(waypoint_line);
 }
 
 int main(int argc, char **argv) {
